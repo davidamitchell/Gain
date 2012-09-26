@@ -24,7 +24,6 @@ testGetAllStates(function (response) {
     });
 
 
-
 });
 
 testBadFormData(function (response) {
@@ -35,6 +34,12 @@ testBadFormData(function (response) {
 
 testNormalFormData(function (response) {
     assert.strictEqual(200, response.statusCode, 'Error in the status code expected: 200, got: ' + response.statusCode);
+    assert.strictEqual("application/json", response.headers["content-type"], 'Error in content-type');
+
+});
+
+testDuplicateFormData(function (response) {
+    assert.strictEqual(409, response.statusCode, 'Error in the status code expected: 409, got: ' + response.statusCode);
     assert.strictEqual("application/json", response.headers["content-type"], 'Error in content-type');
 
 });
@@ -103,6 +108,37 @@ function testNormalFormData(callback) {
 
     var request = http.request(options, function (response) {
         callback(response);
+    });
+
+    // the data to POST needs to be a string or a buffer
+    request.write(post_data);
+    request.end();
+}
+
+function testDuplicateFormData(callback) {
+    var post_data = querystring.stringify({
+        'state':'a state name'
+    });
+
+    var options = {
+        host:'localhost',
+        port:8001,
+        path:'/states',
+        method:'POST',
+        headers:{
+            'Content-Type':'application/x-www-form-urlencoded',
+            'Content-Length':post_data.length
+        }
+    };
+
+    var request = http.request(options, function (response) {
+        var r = http.request(options, function (res) {
+            callback(res);
+        });
+
+        // the data to POST needs to be a string or a buffer
+        r.write(post_data);
+        r.end();
     });
 
     // the data to POST needs to be a string or a buffer
